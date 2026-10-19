@@ -20,6 +20,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from ultralytics import YOLO
 from src.cv_engine.video_reader import VideoReader
+from src.database.db_manager import db_manager
 
 
 class VideoScanner:
@@ -185,6 +186,9 @@ class VideoScanner:
         cv2.imwrite(evidence_path, annotated_frame)
         event["evidence_image"] = f"storage/evidence/{evidence_filename}"
         event["status"] = "UNRESOLVED"
+
+        # Ghi vao SQLite Database
+        db_manager.insert_event(event)
 
         events_list.append(event)
         print(f"[EVENT] Ghi nhan su kien: {event['event_id']} ({event['description']})")
