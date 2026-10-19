@@ -4,7 +4,7 @@
       "camera_id": "CAM-03",
       "name": "Khu Vực Dock Bốc Dỡ & Làn Xe Nâng",
       "location": "Nhà Kho Thông Minh - Khu Vực Cửa Số 3",
-      "video_path": "data/videos/dock_boc_do.mp4",
+      "video_path": "data/videos/YTSave.to_YouTube_Media_DU4aGZdyJBI_warehouse-camera-hd-sdi_001_1080p.mp4",
       "virtual_start_time": "14:05:00",
       "fps_sample_rate": 1,
       "danger_zones": [
@@ -14,10 +14,22 @@
           "description": "Vùng di chuyển của xe nâng, cấm người đi bộ bước vào",
           "severity": "CRITICAL",
           "polygon": [
-            [550, 480],
-            [750, 480],
-            [900, 950],
-            [450, 950]
+            [
+              792,
+              663
+            ],
+            [
+              999,
+              662
+            ],
+            [
+              972,
+              1008
+            ],
+            [
+              711,
+              1010
+            ]
           ]
         }
       ]

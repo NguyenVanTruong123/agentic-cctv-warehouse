@@ -1,0 +1,20 @@
+[
+  {
+    "event_id": "EVT-20261019-001",
+    "camera_id": "CAM-03",
+    "location": "Nhà Kho Thông Minh - Khu Vực Cửa Số 3",
+    "zone_id": "ZONE_FORKLIFT_LANE",
+    "violation_type": "DANGER_ZONE_INTRUSION",
+    "violation_name": "Làn Xe Nâng Nguy Hiểm",
+    "date": "2026-10-19",
+    "start_second": 6,
+    "end_second": 7,
+    "start_timestamp": "14:05:06",
+    "end_timestamp": "14:05:07",
+    "severity": "CRITICAL",
+    "evidence_image": "storage/evidence/EVT-20261019-001.jpg",
+    "duration_seconds": 2,
+    "description": "Phat hien nguoi di bo xam nhap Làn Xe Nâng Nguy Hiểm trong 2 giay (tu 14:05:06 den 14:05:07)",
+    "status": "UNRESOLVED"
+  }
+]
