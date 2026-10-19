@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+*.pt
+*.pth
+*.onnx
+
+# Storage & Videos (large media files)
+data/videos/*.mp4
+data/videos/*.avi
+data/videos/*.mkv
+storage/evidence/*.jpg
+storage/evidence/*.png
+storage/cctv_videos/*.mp4
+
+# Environment
+.env
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Node (Frontend)
+web/node_modules/
+web/.next/
+web/out/
+web/dist/
