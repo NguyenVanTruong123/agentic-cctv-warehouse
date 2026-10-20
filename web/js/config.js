@@ -14,11 +14,13 @@ const CONFIG = {
   API_URL: '/api/v1/chat',
   STORAGE_KEY: 'cctv_videos_v1',
   CAM_KEY: 'cctv_cameras_v1',
-  CHAT_KEY: 'cctv_chat_v1'
+  CHAT_KEY: 'cctv_chat_v1',
+  THREAD_KEY: 'cctv_thread_id_v1'
 };
 
 /* ---------- Trạng thái ứng dụng ---------- */
 const state = {
+  threadId: null,       // ID phiên hội thoại để AI nhớ ngữ cảnh State
   cameras: [],          // {id, name, live:false}
   videos: [],           // metadata video (lưu localStorage)
   urls: {},             // code -> object URL (chỉ trong phiên)

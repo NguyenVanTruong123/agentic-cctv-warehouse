@@ -141,10 +141,15 @@ def get_events(camera_id: Optional[str] = None, date: Optional[str] = None):
     return formatted
 
 
+# Luu tru bo nho hoi thoai theo phien (Session Memory by thread_id)
+CHAT_SESSIONS: Dict[str, list] = {}
+
+
 @app.post("/api/v1/chat", response_model=ChatResponse)
 def handle_chat(req: ChatRequest):
     """
     Endpoint tiep nhan hoi thoai tu nguoi dung, kich hoat LangGraph ReAct Agent:
+      - Duy tri bo nho hoi thoai State theo thread_id (Multi-turn conversation)
       - Tu dong goi Tools de doc Database SQLite
       - Trich xuat giay tua video (seek_second) va anh bang chung (evidence_image)
     """
@@ -152,11 +157,19 @@ def handle_chat(req: ChatRequest):
     if not user_msg:
         raise HTTPException(status_code=400, detail="Tin nhan khong duoc de trong.")
 
+    # 1. Lay lich su hoi thoai cua phien hien tai
+    session_id = req.thread_id or "default_session"
+    history = CHAT_SESSIONS.get(session_id, [])
+
     try:
-        reply_text, _ = chat_with_agent(
+        reply_text, updated_messages = chat_with_agent(
             user_message=user_msg,
+            history=history,
             active_camera=req.active_camera or "CAM-03"
         )
+
+        # 2. Luu lai lich su hoi thoai vao State cua session (giu 20 tin gan nhat)
+        CHAT_SESSIONS[session_id] = list(updated_messages)[-20:]
 
         # Tim kiem xem co su kien vi pham nao duoc de cap trong cau tra loi khong
         matched_events = []

@@ -170,7 +170,8 @@ async function sendMessage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         message: text,
-        active_camera: state.selectedCam || 'CAM-03'
+        active_camera: state.selectedCam || 'CAM-03',
+        thread_id: state.threadId || 'default_session'
       })
     });
 
@@ -214,13 +215,20 @@ async function sendMessage() {
 }
 
 function clearChat() {
-  if (!state.chat.length || !confirm('Xóa toàn bộ lịch sử chat?')) return;
+  if (!state.chat.length || !confirm('Xóa toàn bộ lịch sử chat và làm mới bộ nhớ AI?')) return;
   state.chat = []; save(CONFIG.CHAT_KEY, []);
+  state.threadId = 'session_' + Date.now();
+  save(CONFIG.THREAD_KEY, state.threadId);
   el.messages.innerHTML = '';
-  addMessage('system', 'Đã xóa lịch sử chat.');
+  addMessage('system', 'Đã xóa lịch sử chat và làm mới bộ nhớ phiên làm việc của AI.');
 }
 
 function initChat() {
+  state.threadId = load(CONFIG.THREAD_KEY, null);
+  if (!state.threadId) {
+    state.threadId = 'session_' + Date.now();
+    save(CONFIG.THREAD_KEY, state.threadId);
+  }
   state.chat = load(CONFIG.CHAT_KEY, []);
   if (!state.chat.length) {
     addMessage('system', 'Chào bạn! Tôi là Trợ Lý Giám Sát An Toàn Kho Thông Minh (Smart Warehouse AI Agent). Bạn có thể hỏi tôi về các vi phạm an toàn, tra cứu quy định và yêu cầu tua video tới thời điểm vi phạm.');
