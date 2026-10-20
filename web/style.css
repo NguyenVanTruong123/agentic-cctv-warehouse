@@ -67,6 +67,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .badge-off { background: #3a3d44; color: var(--muted); }
 .badge-live { background: var(--ok); color: #08130F; }
 .badge-video { background: #3b6fd1; color: #fff; }
+.badge-danger { background: #e11d48; color: #ffffff; }
+.badge-success { background: #10b981; color: #08130F; }
+.badge-warn { background: #f59e0b; color: #08130F; }
+
 
 /* ===== Thanh thông tin camera + khung video ===== */
 .infobar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }

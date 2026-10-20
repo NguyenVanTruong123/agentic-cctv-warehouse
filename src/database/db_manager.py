@@ -273,11 +273,22 @@ class DatabaseManager:
             cursor = conn.execute("SELECT * FROM cameras ORDER BY camera_id ASC;")
             return [dict(row) for row in cursor.fetchall()]
 
+    def update_event_status(self, event_id: str, status: str) -> bool:
+        """Cap nhat trang thai xu ly cua su kien (UNRESOLVED, RESOLVED, PENDING, IN_PROGRESS)."""
+        clean_status = status.upper().strip()
+        with self.get_connection() as conn:
+            cursor = conn.execute(
+                "UPDATE events SET status = :status WHERE event_id = :event_id;",
+                {"event_id": event_id, "status": clean_status}
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+
     def get_summary_stats(self) -> Dict[str, Any]:
         """Thong ke tong quan so luong su kien trong he thong."""
         with self.get_connection() as conn:
             total_events = conn.execute("SELECT COUNT(*) FROM events;").fetchone()[0]
-            unresolved = conn.execute("SELECT COUNT(*) FROM events WHERE status = 'UNRESOLVED';").fetchone()[0]
+            unresolved = conn.execute("SELECT COUNT(*) FROM events WHERE status IN ('UNRESOLVED', 'NEW', 'PENDING');").fetchone()[0]
             cameras_count = conn.execute("SELECT COUNT(*) FROM cameras;").fetchone()[0]
             return {
                 "total_events": total_events,

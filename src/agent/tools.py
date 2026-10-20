@@ -105,10 +105,47 @@ def get_safety_stats() -> str:
     return json.dumps(stats, ensure_ascii=False, indent=2)
 
 
+@tool
+def update_safety_event_status(event_id: str, status: str) -> str:
+    """
+    Cap nhat trang thai xu ly cua mot su kien vi pham an toan trong he thong.
+    
+    Tham so:
+      - event_id: Ma su kien can cap nhat (VD: 'EVT-20261020-002', 'EVT-20261019-001').
+      - status: Trang thai moi, chap nhan:
+          + 'RESOLVED' (hoac 'Đã xử lý'): Khi nguoi quan ly da giai quyet xong su co.
+          + 'UNRESOLVED' (hoac 'Chưa xử lý'): Khi su co chua duoc giai quyet hoac can mo lai.
+          + 'IN_PROGRESS' (hoac 'Đang xử lý'): Dang cu nguoi di kiem tra/giai toa.
+    """
+    clean_id = event_id.strip()
+    status_lower = status.lower().strip()
+    if "unresolved" in status_lower or "chưa" in status_lower or "chua" in status_lower:
+        mapped_status = "UNRESOLVED"
+        vi_status = "Chưa xử lý"
+    elif any(k in status_lower for k in ["đã", "da", "xong", "giai toa", "resolved", "done"]):
+        mapped_status = "RESOLVED"
+        vi_status = "Đã xử lý"
+    elif any(k in status_lower for k in ["dang", "đang", "progress"]):
+        mapped_status = "IN_PROGRESS"
+        vi_status = "Đang xử lý"
+    else:
+        mapped_status = "UNRESOLVED"
+        vi_status = "Chưa xử lý"
+
+
+    success = db_manager.update_event_status(clean_id, mapped_status)
+    if success:
+        return f"Cap nhat thanh cong: Su kien {clean_id} da chuyen sang trang thai '{vi_status}' ({mapped_status})."
+    else:
+        return f"Khong the cap nhat: Khong tim thay ma su kien '{clean_id}' trong co so du lieu."
+
+
 # Danh sach toan bo tools cung cap cho Agent
 ALL_TOOLS = [
     query_safety_events,
     get_camera_list,
     get_violation_policy,
-    get_safety_stats
+    get_safety_stats,
+    update_safety_event_status
 ]
+

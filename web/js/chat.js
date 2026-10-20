@@ -117,10 +117,28 @@ function buildResultCard(e, code) {
     return card;
   }
   const dl = makeEl('dl');
-  [['Mã sự kiện', e.id], ['Video / camera', e.source || '—'], ['Thời điểm', typeof e.time === 'number' ? fmtDuration(e.time) + ` (giây thứ ${e.time})` : '—'],
-   ['Loại vi phạm', e.type], ['Mức cảnh báo', e.level], ['Trạng thái', e.status]]
-    .forEach(([k, v]) => { dl.appendChild(makeEl('dt', '', k)); dl.appendChild(makeEl('dd', '', v)); });
+  const isResolved = (e.status === 'Đã xử lý' || e.status === 'RESOLVED');
+  
+  [['Mã sự kiện', e.id], 
+   ['Video / camera', e.source || '—'], 
+   ['Thời điểm', typeof e.time === 'number' ? fmtDuration(e.time) + ` (giây thứ ${e.time})` : '—'],
+   ['Loại vi phạm', e.type], 
+   ['Mức cảnh báo', e.level]
+  ].forEach(([k, v]) => { 
+    dl.appendChild(makeEl('dt', '', k)); 
+    dl.appendChild(makeEl('dd', '', v)); 
+  });
+
+  // Hàng hiển thị Trạng thái kèm Badge đổi màu
+  dl.appendChild(makeEl('dt', '', 'Trạng thái'));
+  const statusDd = makeEl('dd');
+  const statusBadge = makeEl('span', `badge ${isResolved ? 'badge-success' : 'badge-danger'}`, isResolved ? '✓ ĐÃ XỬ LÝ' : '⚠ CHƯA XỬ LÝ');
+  statusBadge.style.marginRight = '8px';
+  statusDd.appendChild(statusBadge);
+  dl.appendChild(statusDd);
+
   card.appendChild(dl);
+
   if (e.evidenceUrl) {
     const img = makeEl('img');
     img.src = e.evidenceUrl;
@@ -135,15 +153,56 @@ function buildResultCard(e, code) {
   } else {
     card.appendChild(makeEl('div', 'evidence', 'Không có ảnh bằng chứng'));
   }
-  const b = makeEl('button', 'btn btn-sm btn-primary', '▶ XEM TẠI THỜI ĐIỂM VI PHẠM (TUA VIDEO)');
-  b.type = 'button';
-  b.style.marginTop = '8px';
-  b.addEventListener('click', () => {
+
+  // Hàng nút điều khiển
+  const actionRow = makeEl('div', 'row');
+  actionRow.style.marginTop = '10px';
+  actionRow.style.display = 'flex';
+  actionRow.style.gap = '8px';
+  actionRow.style.flexWrap = 'wrap';
+
+  // Nút tua video
+  const bSeek = makeEl('button', 'btn btn-sm btn-primary', '▶ TUA VIDEO ĐẾN VI PHẠM');
+  bSeek.type = 'button';
+  bSeek.addEventListener('click', () => {
     seekTo(code || state.selectedCam, e.time);
   });
-  card.appendChild(b);
+  actionRow.appendChild(bSeek);
+
+  // Nút chuyển đổi trạng thái 1-chạm
+  const bToggle = makeEl('button', `btn btn-sm ${isResolved ? 'btn-danger' : 'btn-primary'}`, isResolved ? '↺ ĐÁNH DẤU CHƯA XỬ LÝ' : '✓ ĐÁNH DẤU ĐÃ XỬ LÝ');
+  bToggle.type = 'button';
+  bToggle.addEventListener('click', async () => {
+    bToggle.disabled = true;
+    const nowResolved = (e.status === 'Đã xử lý' || e.status === 'RESOLVED');
+    const targetStatus = nowResolved ? 'UNRESOLVED' : 'RESOLVED';
+    try {
+      const res = await fetch(`/api/v1/events/${e.id}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: targetStatus })
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      e.status = data.vi_status;
+      const updatedResolved = (e.status === 'Đã xử lý');
+      statusBadge.className = `badge ${updatedResolved ? 'badge-success' : 'badge-danger'}`;
+      statusBadge.textContent = updatedResolved ? '✓ ĐÃ XỬ LÝ' : '⚠ CHƯA XỬ LÝ';
+      bToggle.className = `btn btn-sm ${updatedResolved ? 'btn-danger' : 'btn-primary'}`;
+      bToggle.textContent = updatedResolved ? '↺ ĐÁNH DẤU CHƯA XỬ LÝ' : '✓ ĐÁNH DẤU ĐÃ XỬ LÝ';
+      toast(`Sự kiện ${e.id} đã cập nhật sang: ${e.status}`, 'success');
+    } catch (err) {
+      toast('Lỗi cập nhật trạng thái: ' + err.message, 'error');
+    } finally {
+      bToggle.disabled = false;
+    }
+  });
+  actionRow.appendChild(bToggle);
+
+  card.appendChild(actionRow);
   return card;
 }
+
 
 /* Phản hồi mô phỏng – fallback khi không có backend */
 function simulatedReply(text) {

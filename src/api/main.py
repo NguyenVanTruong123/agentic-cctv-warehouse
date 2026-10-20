@@ -147,7 +147,36 @@ def get_events(camera_id: Optional[str] = None, date: Optional[str] = None):
             "evidenceUrl": evidence_url,
             "description": ev.get("description", "")
         })
-    return formatted
+class UpdateEventStatusRequest(BaseModel):
+    status: str
+
+
+@app.post("/api/v1/events/{event_id}/status")
+def update_event_status_api(event_id: str, req: UpdateEventStatusRequest):
+    """Cap nhat trang thai xu ly cua mot su kien vi pham."""
+    raw_status = req.status.strip()
+    status_lower = raw_status.lower()
+    if "unresolved" in status_lower or "chưa" in status_lower or "chua" in status_lower:
+        mapped_status = "UNRESOLVED"
+    elif any(k in status_lower for k in ["đã", "da", "resolved", "done", "xong"]):
+        mapped_status = "RESOLVED"
+    elif any(k in status_lower for k in ["đang", "dang", "progress"]):
+        mapped_status = "IN_PROGRESS"
+    else:
+        mapped_status = "UNRESOLVED"
+
+
+    success = db_manager.update_event_status(event_id, mapped_status)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Khong tim thay su kien '{event_id}'")
+
+    vi_status = "Đã xử lý" if mapped_status == "RESOLVED" else ("Đang xử lý" if mapped_status == "IN_PROGRESS" else "Chưa xử lý")
+    return {
+        "status": "success",
+        "event_id": event_id,
+        "db_status": mapped_status,
+        "vi_status": vi_status
+    }
 
 
 # Luu tru bo nho hoi thoai theo phien (Session Memory by thread_id)
@@ -199,7 +228,7 @@ def handle_chat(req: ChatRequest):
                     "time": seek_sec,
                     "type": ev.get("violation_name", ev["violation_type"]),
                     "level": ev.get("severity", "Cao"),
-                    "status": "Chưa xử lý" if ev.get("status") == "UNRESOLVED" else "Đã xử lý",
+                    "status": "Đã xử lý" if ev.get("status") in ["RESOLVED", "PROCESSED", "DONE"] else "Chưa xử lý",
                     "evidenceUrl": evidence_img,
                     "description": ev.get("description", "")
                 })
