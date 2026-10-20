@@ -5,9 +5,13 @@
    - Chưa có backend: mọi phản hồi chat là MÔ PHỎNG và được gắn nhãn.
    ========================================================= */
 
-/* ---------- Cấu hình: điền URL khi đã có backend Python / LangGraph ---------- */
+/* ---------- Cấu hình: kết nối Backend Python FastAPI / LangGraph ---------- */
 const CONFIG = {
-  API_URL: '',            // ví dụ: 'http://localhost:8000/api/analyze'
+  API_CHAT: '/api/v1/chat',
+  API_CAMERAS: '/api/v1/cameras',
+  API_EVENTS: '/api/v1/events',
+  API_HEALTH: '/api/v1/health',
+  API_URL: '/api/v1/chat',
   STORAGE_KEY: 'cctv_videos_v1',
   CAM_KEY: 'cctv_cameras_v1',
   CHAT_KEY: 'cctv_chat_v1'

@@ -1,11 +1,32 @@
 /* =========================================================
    CAMERA
    ========================================================= */
-function initCameras() {
-  state.cameras = load(CONFIG.CAM_KEY, null) || [
-    { id: 'CAM 01', name: 'CAM 01 - Khu bốc dỡ (Xưởng A)', live: false },
-    { id: 'CAM 02', name: 'CAM 02 - Lối đi', live: false },
-    { id: 'CAM 03', name: 'CAM 03 - Khu sản xuất', live: false }
+async function initCameras() {
+  try {
+    const res = await fetch(CONFIG.API_CAMERAS);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        state.cameras = data;
+        state.selectedCam = data[0].id;
+        renderCameras();
+        renderStage();
+        return;
+      }
+    }
+  } catch (err) {
+    console.warn("Khong the tai camera tu backend, dung fallback:", err);
+  }
+
+  // Fallback mac dinh cho he thong
+  state.cameras = [
+    {
+      id: 'CAM-03',
+      name: 'CAM-03 - Camera Cửa Kho Số 3 - Dock Bốc Dỡ',
+      location: 'Nhà Kho Thông Minh - Khu Vực Cửa Số 3',
+      live: true,
+      videoUrl: '/storage/cctv_videos/dock_boc_do_preview.mp4'
+    }
   ];
   state.selectedCam = state.cameras[0].id;
   renderCameras();
@@ -20,7 +41,7 @@ function renderCameras() {
     b.appendChild(makeEl('span', 'dot'));
     const box = makeEl('span');
     box.appendChild(document.createTextNode(cam.name.split(' - ')[1] ? cam.id + ': ' + cam.name.split(' - ')[1] : cam.name));
-    box.appendChild(makeEl('small', '', cam.live ? 'Đã kết nối' : 'Chưa kết nối'));
+    box.appendChild(makeEl('small', '', cam.live ? 'Đang trực tiếp (ACTIVE)' : 'Ngoại tuyến (OFFLINE)'));
     b.appendChild(box);
     b.addEventListener('click', () => selectCamera(cam.id));
     el.camList.appendChild(b);
@@ -36,7 +57,7 @@ function selectCamera(id) {
   state.activeVideo = null;
   renderCameras();
   renderStage();
-  renderLibrary();
+  if (typeof renderLibrary === 'function') renderLibrary();
 }
 
 function addSampleCamera() {

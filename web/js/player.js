@@ -10,9 +10,24 @@ function renderStage() {
     // Đang xem video đã nạp (không phải camera trực tiếp)
     if (el.video.src !== state.urls[vid.code]) el.video.src = state.urls[vid.code];
     el.video.hidden = false; el.placeholder.hidden = true;
-    el.srcBadge.textContent = 'VIDEO'; el.srcBadge.className = 'badge badge-video';
+    el.srcBadge.textContent = 'VIDEO ĐÃ NẠP'; el.srcBadge.className = 'badge badge-video';
     el.camName.textContent = `${vid.name} · ${vid.camName}`;
     el.osdCode.textContent = vid.code; el.osdState.textContent = 'VIDEO ĐÃ NẠP';
+    el.btnPlay.disabled = false;
+    updatePlayLabel();
+  } else if (cam && cam.videoUrl) {
+    // Đang xem camera trực tiếp từ nhà kho có luồng/tệp video thật
+    if (!el.video.src || !el.video.src.includes(cam.videoUrl)) {
+      el.video.src = cam.videoUrl;
+      el.video.muted = true;
+      el.video.loop = true;
+      el.video.load();
+      el.video.play().catch((err) => console.log('Autoplay deferred:', err));
+    }
+    el.video.hidden = false; el.placeholder.hidden = true;
+    el.srcBadge.textContent = 'LIVE CCTV'; el.srcBadge.className = 'badge badge-live';
+    el.camName.textContent = cam.name;
+    el.osdCode.textContent = cam.id; el.osdState.textContent = 'TRỰC TIẾP (ACTIVE)';
     el.btnPlay.disabled = false;
     updatePlayLabel();
   } else {
@@ -49,11 +64,32 @@ function clearBoxes() { el.bbox.innerHTML = ''; }
 
 /* Nhảy tới thời điểm trong video đang phát */
 function seekTo(code, seconds) {
+  if (typeof seconds !== 'number' || seconds < 0) {
+    toast('Thời điểm không hợp lệ.', 'error');
+    return;
+  }
+
+  // 1. Nếu đang có camera trực tiếp được chọn
+  const cam = state.cameras.find((c) => c.id === state.selectedCam);
+  if (cam && cam.videoUrl && el.video.src) {
+    el.video.currentTime = Math.min(seconds, el.video.duration || seconds);
+    el.video.play().catch(() => {});
+    toast(`Đã tua camera ${cam.id} tới giây thứ ${seconds} (thời điểm vi phạm)`, 'success');
+    return;
+  }
+
+  // 2. Nếu là video nạp từ modal
   const vid = state.videos.find((v) => v.code === code);
-  if (!vid || !state.urls[code]) { toast('Không có tệp video trong phiên này. Hãy nạp lại video.', 'warn'); return; }
-  if (typeof seconds !== 'number' || seconds < 0) { toast('Thời điểm không hợp lệ.', 'error'); return; }
+  if (!vid || !state.urls[code]) {
+    toast('Không tìm thấy tệp video.', 'warn');
+    return;
+  }
   state.activeVideo = code;
-  renderStage(); renderLibrary();
-  const go = () => { el.video.currentTime = Math.min(seconds, el.video.duration || seconds); el.video.play().catch(() => {}); };
+  renderStage();
+  if (typeof renderLibrary === 'function') renderLibrary();
+  const go = () => {
+    el.video.currentTime = Math.min(seconds, el.video.duration || seconds);
+    el.video.play().catch(() => {});
+  };
   el.video.readyState >= 1 ? go() : el.video.addEventListener('loadedmetadata', go, { once: true });
 }
