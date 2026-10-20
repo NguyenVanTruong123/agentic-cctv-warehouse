@@ -45,7 +45,12 @@ function addMessage(role, text, opts = {}) {
   const m = { role, text, time: nowTime(), sim: !!opts.sim, events: opts.events || null, code: opts.code || null, noResult: !!opts.noResult };
   state.chat.push(m);
   save(CONFIG.CHAT_KEY, state.chat.map(({ events, ...rest }) => rest)); // không lưu dữ liệu sự kiện nặng
-  renderMessage(m);
+  
+  if (opts.stream) {
+    renderStreamingMessage(m, opts.onDone);
+  } else {
+    renderMessage(m);
+  }
 }
 
 function renderMessage(m) {
@@ -54,11 +59,54 @@ function renderMessage(m) {
   who.appendChild(makeEl('span', '', ROLE_LABEL[m.role]));
   who.appendChild(makeEl('span', 'mono', m.time));
   if (m.sim) who.appendChild(makeEl('span', 'sim-tag', 'MÔ PHỎNG – KHÔNG PHẢI KẾT QUẢ AI THẬT'));
-  box.append(who, document.createTextNode(m.text));
+  const contentEl = makeEl('div', 'msg-text');
+  contentEl.innerHTML = typeof formatMarkdown === 'function' ? formatMarkdown(m.text) : m.text;
+  box.append(who, contentEl);
   if (m.noResult) box.appendChild(buildResultCard(null));
   (m.events || []).forEach((e) => box.appendChild(buildResultCard(e, m.code)));
   el.messages.appendChild(box);
-  el.messages.scrollTop = el.messages.scrollHeight;       // tự cuộn xuống tin mới nhất
+  el.messages.scrollTop = el.messages.scrollHeight;
+}
+
+/* Hiệu ứng gõ chữ thời gian thực (Streaming Typewriter Effect như ChatGPT / Gemini) */
+function renderStreamingMessage(m, onDone) {
+  const box = makeEl('div', 'msg ' + m.role + (m.events && m.events.some((e) => e.level === 'Cao') ? ' alert' : ''));
+  const who = makeEl('div', 'who');
+  who.appendChild(makeEl('span', '', ROLE_LABEL[m.role]));
+  who.appendChild(makeEl('span', 'mono', m.time));
+  if (m.sim) who.appendChild(makeEl('span', 'sim-tag', 'MÔ PHỎNG'));
+
+  const contentEl = makeEl('div', 'msg-text');
+  contentEl.innerHTML = '<span class="typing-cursor">▌</span>';
+  box.append(who, contentEl);
+  el.messages.appendChild(box);
+  el.messages.scrollTop = el.messages.scrollHeight;
+
+  // Tách từ để tuôn chữ mượt mà
+  const tokens = m.text.match(/\S+|\s+/g) || [m.text];
+  let idx = 0;
+  let accumulated = '';
+
+  const timer = setInterval(() => {
+    if (idx < tokens.length) {
+      accumulated += tokens[idx];
+      idx++;
+      contentEl.innerHTML = typeof formatMarkdown === 'function'
+        ? formatMarkdown(accumulated) + '<span class="typing-cursor">▌</span>'
+        : accumulated;
+      el.messages.scrollTop = el.messages.scrollHeight;
+    } else {
+      clearInterval(timer);
+      contentEl.innerHTML = typeof formatMarkdown === 'function' ? formatMarkdown(m.text) : m.text;
+      
+      // Hiển thị thẻ bằng chứng sau khi AI gõ xong
+      if (m.noResult) box.appendChild(buildResultCard(null));
+      (m.events || []).forEach((e) => box.appendChild(buildResultCard(e, m.code)));
+      el.messages.scrollTop = el.messages.scrollHeight;
+
+      if (typeof onDone === 'function') onDone();
+    }
+  }, 16);
 }
 
 /* Thẻ kết quả hiển thị bằng chứng vi phạm */
@@ -132,19 +180,22 @@ async function sendMessage() {
     }
 
     const data = await res.json();
-    setBotStatus('Hoàn thành', 'done');
+    setBotStatus('AI đang trả lời...', 'busy');
 
-    // Hiển thị tin nhắn trả lời từ LangGraph Agent
+    // Hiển thị tin nhắn trả lời từ LangGraph Agent với hiệu ứng Streaming
     addMessage('bot', data.reply, {
       sim: false,
       events: data.events,
-      code: state.selectedCam
+      code: state.selectedCam,
+      stream: true,
+      onDone: () => {
+        setBotStatus('Hoàn thành', 'done');
+        // Nếu Agent yêu cầu tua video đến giây vi phạm
+        if (typeof data.seek_second === 'number' && data.seek_second >= 0) {
+          seekTo(state.selectedCam, data.seek_second);
+        }
+      }
     });
-
-    // Nếu Agent yêu cầu tua video đến giây vi phạm
-    if (typeof data.seek_second === 'number' && data.seek_second >= 0) {
-      seekTo(state.selectedCam, data.seek_second);
-    }
 
   } catch (err) {
     console.warn('Lỗi gọi chat API backend, sử dụng mô phỏng fallback:', err);
