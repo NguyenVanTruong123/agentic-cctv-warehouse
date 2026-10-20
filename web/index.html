@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hệ thống giám sát camera AI</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <header class="topbar">
+    <h1>Hệ thống giám sát camera AI</h1>
+    <div class="topbar-right">
+      <span class="chip chip-warn" id="backendChip">Backend AI: chưa kết nối</span>
+      <span class="mono" id="clock">--:--:--</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- ===== CỘT TRÁI: CAMERA MONITOR ===== -->
+    <section class="panel" id="monitor" aria-label="Camera Monitor">
+      <h2 class="panel-title">CAMERA MONITOR</h2>
+
+      <div class="infobar">
+        <span class="badge badge-off" id="srcBadge">OFFLINE</span>
+        <span class="cam-name" id="camName">Chưa chọn camera</span>
+        <span class="mono osd-text" id="osdTime">--:--:--</span>
+        <button class="btn btn-sm" id="btnPlay" disabled>Phát</button>
+        <button class="btn btn-sm" id="btnFull">Phóng to</button>
+      </div>
+
+      <div class="stage" id="stage">
+        <video id="mainVideo" controls hidden></video>
+        <div class="placeholder" id="placeholder">Chưa kết nối camera</div>
+        <div class="osd osd-tl mono" id="osdCode">—</div>
+        <div class="osd osd-tr mono" id="osdState">OFFLINE</div>
+        <div class="bbox-layer" id="bboxLayer"></div>
+      </div>
+
+      <h3 class="sub-title">Chọn camera</h3>
+      <div class="cam-list" id="camList"></div>
+    </section>
+
+    <!-- ===== CỘT PHẢI: CHATBOT ===== -->
+    <section class="panel chat-panel" id="chatPanel" aria-label="AI Agentic Chatbot">
+      <div class="chat-head">
+        <h2 class="panel-title">AI AGENTIC CHATBOT</h2>
+        <div class="chat-head-actions">
+          <span class="chip" id="botStatus">Sẵn sàng</span>
+          <button class="btn btn-primary btn-sm" id="btnOpenModal">+ Nạp video</button>
+        </div>
+      </div>
+      <div class="messages" id="messages" aria-live="polite"></div>
+      <div class="composer">
+        <textarea id="chatInput" rows="2"
+          placeholder="Nhập yêu cầu. Enter để gửi, Shift + Enter để xuống dòng."></textarea>
+        <div class="composer-actions">
+          <button class="btn btn-sm btn-danger" id="btnClearChat">XÓA LỊCH SỬ CHAT</button>
+          <button class="btn btn-primary" id="btnSend">GỬI</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== MODAL NẠP VIDEO ===== -->
+  <div class="modal-backdrop" id="modal" hidden>
+    <form class="modal" id="videoForm" novalidate role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <h2 id="modalTitle">Thêm video / nạp video</h2>
+        <button type="button" class="icon-btn" id="btnCloseModal" aria-label="Đóng">✕</button>
+      </div>
+
+      <div class="form-grid">
+        <label>Tên video *
+          <input type="text" id="fName" maxlength="120" required>
+          <small class="err" id="errName"></small>
+        </label>
+        <label>Mã video
+          <input type="text" id="fCode" maxlength="40" placeholder="Tự sinh nếu để trống">
+        </label>
+        <label>Camera liên quan
+          <select id="fCam"></select>
+        </label>
+        <label>Khu vực giám sát
+          <input type="text" id="fArea" maxlength="120">
+        </label>
+        <label>Ngày quay
+          <input type="date" id="fDate">
+        </label>
+        <label>Thời gian quay
+          <input type="time" id="fTime">
+        </label>
+        <label class="span2">Loại kiểm tra
+          <select id="fType">
+            <option>Phát hiện công nhân không đội mũ bảo hộ</option>
+            <option>Phát hiện không mặc áo phản quang</option>
+            <option>Phát hiện đi vào khu vực nguy hiểm</option>
+            <option>Phát hiện hành vi vi phạm an toàn khác</option>
+            <option>Kiểm tra tổng quát</option>
+          </select>
+        </label>
+        <label class="span2">Mô tả video
+          <textarea id="fDesc" rows="2" maxlength="500"></textarea>
+        </label>
+      </div>
+
+      <div class="file-box">
+        <input type="file" id="fFile" accept="video/*" hidden>
+        <div class="row">
+          <button type="button" class="btn" id="btnPick">CHỌN VIDEO TỪ MÁY TÍNH</button>
+          <button type="button" class="btn btn-danger" id="btnRemoveFile" hidden>XÓA TỆP ĐÃ CHỌN</button>
+        </div>
+        <small class="err" id="errFile"></small>
+        <div class="file-meta" id="fileMeta" hidden>
+          <div>Tên tệp: <b id="mName">—</b></div>
+          <div>Dung lượng: <b id="mSize">—</b></div>
+          <div>Định dạng: <b id="mFormat">—</b></div>
+          <div>Thời lượng: <b id="mDur">—</b></div>
+        </div>
+        <video id="previewVideo" controls hidden></video>
+      </div>
+
+      <div class="modal-foot">
+        <button type="button" class="btn" id="btnCancel">HỦY</button>
+        <button type="button" class="btn" id="btnReset">ĐẶT LẠI</button>
+        <button type="submit" class="btn" id="btnSave">LƯU VIDEO</button>
+        <button type="button" class="btn btn-primary" id="btnSaveAnalyze">LƯU &amp; PHÂN TÍCH AI</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="toasts" id="toasts" aria-live="assertive"></div>
+  <!-- Các module JavaScript đã được chia nhỏ theo chức năng -->
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/camera.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/library.js"></script>
+  <script src="js/modal.js"></script>
+  <script src="js/chat.js"></script>
+  <script src="js/main.js"></script>
+</body>
+
+</html>
