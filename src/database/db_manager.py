@@ -32,7 +32,20 @@ class DatabaseManager:
         with self.get_connection() as conn:
             cursor = conn.cursor()
 
-            # 1. Bang quan ly danh muc Camera
+            # 1. Bang quan ly danh muc Loai Vi Pham (Violation Types)
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS violation_types (
+                violation_type TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                severity TEXT NOT NULL,
+                description TEXT,
+                penalty TEXT,
+                color_code TEXT DEFAULT '#EF4444',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """)
+
+            # 2. Bang quan ly danh muc Camera
             cursor.execute("""
             CREATE TABLE IF NOT EXISTS cameras (
                 camera_id TEXT PRIMARY KEY,
@@ -46,7 +59,7 @@ class DatabaseManager:
             );
             """)
 
-            # 2. Bang quan ly Su kien Vi pham (Events)
+            # 3. Bang quan ly Su kien Vi pham (Events)
             cursor.execute("""
             CREATE TABLE IF NOT EXISTS events (
                 event_id TEXT PRIMARY KEY,
@@ -66,22 +79,34 @@ class DatabaseManager:
                 description TEXT,
                 status TEXT DEFAULT 'UNRESOLVED',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (camera_id) REFERENCES cameras(camera_id)
+                FOREIGN KEY (camera_id) REFERENCES cameras(camera_id),
+                FOREIGN KEY (violation_type) REFERENCES violation_types(violation_type)
             );
             """)
 
-            # 3. Tao Indexes de tim kiem theo camera va ngay thang cuc nhanh
+            # 4. Tao Indexes de tim kiem theo camera va ngay thang cuc nhanh
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_events_camera_date ON events(camera_id, date);")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_events_violation_type ON events(violation_type);")
 
             conn.commit()
 
-        # Tu dong nap du lieu mau tu cameras.json va events.json neu bang dang trong
+        # Tu dong nap du lieu mau tu violations.json, cameras.json va events.json neu bang dang trong
         self._sync_from_json_files()
 
     def _sync_from_json_files(self) -> None:
-        """Dong bo du lieu co san tu config/cameras.json va storage/events/events.json vao DB."""
-        # 1. Sync cameras
+        """Dong bo du lieu co san tu config va storage vao DB."""
+        # 1. Sync violation types
+        violations_path = "config/violations.json"
+        if os.path.exists(violations_path):
+            try:
+                with open(violations_path, "r", encoding="utf-8") as f:
+                    v_config = json.load(f)
+                for vt in v_config.get("violation_types", []):
+                    self.upsert_violation_type(vt)
+            except Exception as e:
+                print(f"[DB] Loi dong bo violations.json: {e}")
+
+        # 2. Sync cameras
         config_path = "config/cameras.json"
         if os.path.exists(config_path):
             try:
@@ -101,7 +126,7 @@ class DatabaseManager:
             except Exception as e:
                 print(f"[DB] Loi dong bo cameras.json: {e}")
 
-        # 2. Sync events
+        # 3. Sync events
         events_path = "storage/events/events.json"
         if os.path.exists(events_path):
             try:
@@ -111,6 +136,35 @@ class DatabaseManager:
                     self.insert_event(ev)
             except Exception as e:
                 print(f"[DB] Loi dong bo events.json: {e}")
+
+    def upsert_violation_type(self, v_type_data: Dict[str, Any]) -> None:
+        """Them hoac cap nhat danh muc loai vi pham."""
+        query = """
+        INSERT INTO violation_types (violation_type, name, severity, description, penalty, color_code)
+        VALUES (:violation_type, :name, :severity, :description, :penalty, :color_code)
+        ON CONFLICT(violation_type) DO UPDATE SET
+            name = excluded.name,
+            severity = excluded.severity,
+            description = excluded.description,
+            penalty = excluded.penalty,
+            color_code = excluded.color_code;
+        """
+        with self.get_connection() as conn:
+            conn.execute(query, {
+                "violation_type": v_type_data["violation_type"],
+                "name": v_type_data["name"],
+                "severity": v_type_data.get("severity", "MEDIUM"),
+                "description": v_type_data.get("description", ""),
+                "penalty": v_type_data.get("penalty", ""),
+                "color_code": v_type_data.get("color_code", "#EF4444")
+            })
+            conn.commit()
+
+    def get_violation_types(self) -> List[Dict[str, Any]]:
+        """Lay danh sach tat ca cac loai vi pham quy dinh."""
+        with self.get_connection() as conn:
+            cursor = conn.execute("SELECT * FROM violation_types ORDER BY severity ASC;")
+            return [dict(row) for row in cursor.fetchall()]
 
     def upsert_camera(self, camera_data: Dict[str, Any]) -> None:
         """Them hoac cap nhat camera vao bang cameras."""

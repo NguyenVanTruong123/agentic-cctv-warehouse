@@ -1,0 +1,28 @@
+{
+  "violation_types": [
+    {
+      "violation_type": "DANGER_ZONE_INTRUSION",
+      "name": "Đi vào làn cấm",
+      "severity": "CRITICAL",
+      "description": "Người đi bộ bước chân vào làn đường dành riêng cho xe nâng hoặc khu vực máy móc nguy hiểm.",
+      "penalty": "Lập biên bản cảnh cáo lần 1, đình chỉ làm việc tại khu vực 3 ngày.",
+      "color_code": "#EF4444"
+    },
+    {
+      "violation_type": "UNIFORM_PPE_VIOLATION",
+      "name": "Không mặc đồng phục / đồ bảo hộ",
+      "severity": "HIGH",
+      "description": "Công nhân không mặc đúng đồng phục công ty, thiếu mũ cứng bảo hộ hoặc không mặc áo phản quang tại khu vực quy định.",
+      "penalty": "Nhắc nhở tại chỗ lần 1, tái phạm phạt 200.000 VNĐ và trừ điểm chuyên cần.",
+      "color_code": "#F97316"
+    },
+    {
+      "violation_type": "PATHWAY_OBSTRUCTION",
+      "name": "Vật cản chắn đường lối đi",
+      "severity": "MEDIUM",
+      "description": "Đặt kiện hàng, pallet gỗ, thùng carton hoặc xe đẩy chắn ngang lối đi bộ hoặc cửa thoát hiểm khẩn cấp quá 5 phút.",
+      "penalty": "Phát loa cảnh báo yêu cầu bộ phận liên quan di dời vật cản ngay lập tức trong vòng 5 phút.",
+      "color_code": "#EAB308"
+    }
+  ]
+}

@@ -11,6 +11,13 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+# Bat che do UTF-8 cho Windows console
+if sys.stdout.encoding != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 from src.database.db_manager import db_manager
 
 
@@ -42,12 +49,17 @@ def main():
     print(f"-> So luong Camera : {stats['total_cameras']}")
     print(f"-> Tong so su kien : {stats['total_events']} (Chua xu ly: {stats['unresolved_events']})")
 
-    # 2. Xem bang cameras
+    # 2. Xem bang violation_types (Danh muc vi pham)
+    v_types = db_manager.get_violation_types()
+    v_headers = ["violation_type", "name", "severity", "penalty"]
+    display_table("BANG: VIOLATION_TYPES (DANH MUC VI PHAM)", v_headers, v_types)
+
+    # 3. Xem bang cameras
     cameras = db_manager.get_cameras()
     cam_headers = ["camera_id", "name", "location", "virtual_start_time"]
     display_table("BANG: CAMERAS", cam_headers, cameras)
 
-    # 3. Xem bang events
+    # 4. Xem bang events
     events = db_manager.query_events(limit=20)
     event_headers = ["event_id", "camera_id", "violation_type", "date", "start_timestamp", "duration_seconds", "severity", "status"]
     display_table("BANG: EVENTS (SU KIEN VI PHAM)", event_headers, events)
