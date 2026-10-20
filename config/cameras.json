@@ -1,6 +1,40 @@
 {
   "cameras": [
     {
+      "camera_id": "CAM-01",
+      "name": "Khu Vực Tuyến Đường Xe Nâng & Quan Sát Vật Cản",
+      "location": "Nhà Kho Thông Minh - Tuyến Hành Lang Xe Nâng Số 1",
+      "video_path": "data/videos/vatcanchanduongxenang.mp4",
+      "virtual_start_time": "09:15:00",
+      "fps_sample_rate": 1,
+      "danger_zones": [
+        {
+          "zone_id": "ZONE_FORKLIFT_OBSTACLE",
+          "name": "Làn Đường Xe Nâng Chính",
+          "description": "Khu vực làn đường vận hành xe nâng hàng, nghiêm cấm để vật cản/pallet chắn lối đi",
+          "severity": "HIGH",
+          "polygon": [
+            [
+              604,
+              1076
+            ],
+            [
+              840,
+              4
+            ],
+            [
+              1098,
+              6
+            ],
+            [
+              1275,
+              1078
+            ]
+          ]
+        }
+      ]
+    },
+    {
       "camera_id": "CAM-03",
       "name": "Khu Vực Dock Bốc Dỡ & Làn Xe Nâng",
       "location": "Nhà Kho Thông Minh - Khu Vực Cửa Số 3",

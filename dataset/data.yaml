@@ -1,0 +1,7 @@
+path: D:/Tai_lieu_hoc_tap/code/thuc_tap/dataset
+train: images/train
+val: images/val
+
+names:
+  0: pallet
+  1: forklift

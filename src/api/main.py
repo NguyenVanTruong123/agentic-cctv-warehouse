@@ -94,7 +94,7 @@ def get_cameras():
     result = []
     for c in cameras:
         cam_id = c["camera_id"]
-        # Gan video mac dinh cho CAM-03
+        # Gan video cho camera
         video_url = ""
         if cam_id == "CAM-03":
             preview_file = STORAGE_DIR / "cctv_videos" / "dock_boc_do_preview.mp4"
@@ -102,6 +102,15 @@ def get_cameras():
                 video_url = "/storage/cctv_videos/dock_boc_do_preview.mp4"
             else:
                 video_url = "/data/videos/YTSave.to_YouTube_Media_DU4aGZdyJBI_warehouse-camera-hd-sdi_001_1080p.mp4"
+        elif cam_id == "CAM-01":
+            preview_file = STORAGE_DIR / "cctv_videos" / "vat_can_xe_nang_preview.mp4"
+            if preview_file.exists():
+                video_url = "/storage/cctv_videos/vat_can_xe_nang_preview.mp4"
+            else:
+                video_url = "/data/videos/VatCanChanLoiDiXeNang.mp4"
+        elif c.get("video_path"):
+            v_path = c["video_path"].replace("\\", "/").lstrip("/")
+            video_url = f"/{v_path}"
 
         result.append({
             "id": cam_id,
