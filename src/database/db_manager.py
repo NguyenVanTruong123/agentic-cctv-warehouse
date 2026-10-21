@@ -267,6 +267,13 @@ class DatabaseManager:
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
 
+    def get_event_by_id(self, event_id: str) -> Optional[Dict[str, Any]]:
+        """Tra cuu chi tiet mot su kien theo ma event_id."""
+        with self.get_connection() as conn:
+            cursor = conn.execute("SELECT * FROM events WHERE event_id = :event_id LIMIT 1;", {"event_id": event_id.strip()})
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
     def get_cameras(self) -> List[Dict[str, Any]]:
         """Lay danh sach tat ca camera."""
         with self.get_connection() as conn:

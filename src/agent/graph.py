@@ -37,55 +37,70 @@ from src.agent.tools import ALL_TOOLS
 from src.agent.prompts import get_system_prompt
 
 
-def build_llm_with_fallback():
-    """
-    Khoi tao LLM voi co che Du phong (Fallback) tu dong:
-      - Uu tien 1: Google Gemini (gemini-2.5-flash)
-      - Du phong (Fallback): DeepSeek (deepseek-chat qua OpenAI API format)
-    Khi Gemini gap loi (het han quota, loi key 400/403, timeout 503, ...),
-    he thong lap tuc tu dong chuyen sang goi DeepSeek Chat ma khong gay gian doan.
-    """
+def init_models():
+    """Khoi tao ca 2 mo hinh: Google Gemini (chinh) va DeepSeek (du phong)."""
     google_key = os.getenv("GOOGLE_API_KEY", "")
     deepseek_key = os.getenv("DEEPSEEK_API_KEY", "")
 
-    # 1. Mo hinh chinh: Google Gemini (gemini-2.5-flash)
-    primary_llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
-        google_api_key=google_key,
-        temperature=0.1,
-        max_retries=1
-    )
-    primary_with_tools = primary_llm.bind_tools(ALL_TOOLS)
+    primary_model = None
+    if google_key:
+        try:
+            primary_model = ChatGoogleGenerativeAI(
+                model="gemini-2.5-flash",
+                google_api_key=google_key,
+                temperature=0.1,
+                max_retries=0
+            ).bind_tools(ALL_TOOLS)
+        except Exception as e:
+            print(f"[WARN] Khong the khoi tao Gemini: {e}")
 
-    # 2. Mo hinh du phong: DeepSeek Chat (neu co key)
+    fallback_model = None
     if deepseek_key and deepseek_key.strip() != "your_deepseek_api_key_here":
-        fallback_llm = ChatOpenAI(
-            api_key=deepseek_key.strip(),
-            base_url=os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
-            model="deepseek-chat",
-            temperature=0.1,
-            max_retries=1
-        )
-        fallback_with_tools = fallback_llm.bind_tools(ALL_TOOLS)
-        print("[INFO] Da kich hoat co che Du phong Fallback: Gemini -> DeepSeek")
-        # Bat toan bo cac ngoai le tu Gemini (Exception) de tu dong chuyen sang DeepSeek
-        return primary_with_tools.with_fallbacks([fallback_with_tools], exceptions_to_handle=(Exception,))
+        try:
+            fallback_model = ChatOpenAI(
+                api_key=deepseek_key.strip(),
+                base_url=os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
+                model="deepseek-chat",
+                temperature=0.1,
+                max_retries=1
+            ).bind_tools(ALL_TOOLS)
+            print("[INFO] Da san sang mo hinh du phong DeepSeek Chat")
+        except Exception as e:
+            print(f"[WARN] Khong the khoi tao DeepSeek: {e}")
 
-    return primary_with_tools
+    return primary_model, fallback_model
 
 
-# Khoi tao model da gan san Tools va co che Fallback
-llm_with_tools = build_llm_with_fallback()
+PRIMARY_MODEL, FALLBACK_MODEL = init_models()
 
 
 def agent_node(state: AgentState):
-    """Node Agent: LLM doc hoi thoai va quyet dinh tra loi hoac goi Tool."""
+    """
+    Node Agent: LLM doc hoi thoai va quyet dinh tra loi hoac goi Tool.
+    Tu dong chuyen sang DeepSeek ngay tuc khac khi Gemini gap bat ky loi nao (429 Quota, 503, ...).
+    """
     active_cam = state.get("active_camera", None)
     system_prompt = get_system_prompt(active_camera=active_cam)
 
     # Chen System Message vao dau lich su tin nhan
     messages = [SystemMessage(content=system_prompt)] + list(state["messages"])
-    response = llm_with_tools.invoke(messages)
+
+    response = None
+    if PRIMARY_MODEL is not None:
+        try:
+            response = PRIMARY_MODEL.invoke(messages)
+        except BaseException as e:
+            print(f"\n[FALLBACK TỰ ĐỘNG] Google Gemini lỗi ({type(e).__name__}: {e})")
+            print("  -> Chuyển hướng sang DeepSeek Chat xử lý tiếp...\n")
+            if FALLBACK_MODEL is not None:
+                response = FALLBACK_MODEL.invoke(messages)
+            else:
+                raise e
+    elif FALLBACK_MODEL is not None:
+        response = FALLBACK_MODEL.invoke(messages)
+    else:
+        raise RuntimeError("Khong co mo hinh LLM nao kha dung!")
+
     return {"messages": [response]}
 
 

@@ -24,26 +24,50 @@ def query_safety_events(
     Tra cuu danh sach cac su kien vi pham an toan kho bai tu Database SQLite.
     
     Tham so:
-      - camera_id: Ma camera can loc (VD: 'CAM-01', 'CAM-03'). De trong neu muon tim toan xuong.
-      - date: Ngay dien ra su kien theo dinh dang YYYY-MM-DD (VD: '2026-10-19').
-      - violation_type: Ma loai vi pham cu the (VD: 'DANGER_ZONE_INTRUSION', 'UNIFORM_PPE_VIOLATION', 'PATHWAY_OBSTRUCTION').
+      - camera_id: Ma camera can loc (VD: 'CAM-01' xe nang, 'CAM-02' hanh lang thoat hiem, 'CAM-03' dock boc do). De trong de tim toan bo.
+      - date: Ngay dien ra su kien theo dinh dang YYYY-MM-DD (VD: '2026-10-20', '2026-10-21').
+      - violation_type: Ma loai vi pham cu the:
+          + 'EMERGENCY_EXIT_OBSTRUCTION': Vat can chan loi thoat hiem PCCC (dac trung cua CAM-02).
+          + 'PATHWAY_OBSTRUCTION': Vat can chan lan xe nang (CAM-01).
+          + 'DANGER_ZONE_INTRUSION': Nguoi di vao lan cam/xe nang (CAM-03).
+          + 'UNIFORM_PPE_VIOLATION': Khong mang do bao ho PPE.
+          (Luu y: Co the de None neu muon tim tat ca vi pham tren camera do).
       - start_time: Gio bat dau theo dinh dang HH:MM:SS (VD: '14:00:00').
       - end_time: Gio ket thuc theo dinh dang HH:MM:SS (VD: '15:00:00').
       - limit: So luong ban ghi toi da (mac dinh 10).
     """
+    # Tu dong chuan hoa alias cho loai vi pham
+    target_vt = violation_type
+    if target_vt:
+        vt_upper = target_vt.upper().strip()
+        if any(k in vt_upper for k in ["THOAT_HIEM", "EMERGENCY", "EXIT", "PCCC"]):
+            target_vt = "EMERGENCY_EXIT_OBSTRUCTION"
+
     events = db_manager.query_events(
         camera_id=camera_id,
         date=date,
-        violation_type=violation_type,
+        violation_type=target_vt,
         start_time=start_time,
         end_time=end_time,
         limit=limit
     )
+
+    # Neu tim theo CAM-02 ma chua thay su kien do LLM loc PATHWAY_OBSTRUCTION, thu tim lai voi EMERGENCY_EXIT_OBSTRUCTION
+    if not events and camera_id == "CAM-02" and target_vt == "PATHWAY_OBSTRUCTION":
+        events = db_manager.query_events(
+            camera_id=camera_id,
+            date=date,
+            violation_type="EMERGENCY_EXIT_OBSTRUCTION",
+            start_time=start_time,
+            end_time=end_time,
+            limit=limit
+        )
+
     if not events:
         filter_desc = []
         if camera_id: filter_desc.append(f"camera {camera_id}")
         if date: filter_desc.append(f"ngay {date}")
-        if violation_type: filter_desc.append(f"loai {violation_type}")
+        if target_vt: filter_desc.append(f"loai {target_vt}")
         ctx = " ".join(filter_desc) if filter_desc else "toan bo he thong"
         return f"Khong tim thay su kien vi pham nao phu hop voi {ctx} trong co so du lieu."
 

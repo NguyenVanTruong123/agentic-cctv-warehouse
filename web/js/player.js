@@ -63,9 +63,22 @@ function drawBox(b) {
 function clearBoxes() { el.bbox.innerHTML = ''; }
 
 /* Nhảy tới thời điểm trong video đang phát */
-function seekTo(code, seconds) {
+function seekTo(code, seconds, videoUrl) {
   if (typeof seconds !== 'number' || seconds < 0) {
     toast('Thời điểm không hợp lệ.', 'error');
+    return;
+  }
+
+  // Nếu sự kiện có videoUrl riêng (ví dụ video hôm nay vs hôm qua)
+  if (videoUrl && el.video.src && !el.video.src.includes(videoUrl)) {
+    el.video.src = videoUrl;
+    el.video.load();
+    const jump = () => {
+      el.video.currentTime = Math.min(seconds, el.video.duration || seconds);
+      el.video.play().catch(() => {});
+      toast(`Đã chuyển video và tua tới giây thứ ${seconds}`, 'success');
+    };
+    el.video.readyState >= 1 ? jump() : el.video.addEventListener('loadedmetadata', jump, { once: true });
     return;
   }
 

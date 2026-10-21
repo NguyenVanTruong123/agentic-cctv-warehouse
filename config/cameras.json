@@ -35,6 +35,40 @@
       ]
     },
     {
+      "camera_id": "CAM-02",
+      "name": "Khu Vực Hành Lang & Cửa Thoát Hiểm PCCC",
+      "location": "Nhà Kho Thông Minh - Tuyến Hành Lang Thoát Hiểm Tầng 1",
+      "video_path": "data/videos/vat_can_chan_duong_di_thoat_hiem_1.mp4",
+      "virtual_start_time": "10:30:00",
+      "fps_sample_rate": 1,
+      "danger_zones": [
+        {
+          "zone_id": "ZONE_EMERGENCY_EXIT",
+          "name": "Lối Thoát Hiểm PCCC",
+          "description": "Khu vực hành lang và cửa thoát hiểm khẩn cấp, nghiêm cấm để vật cản/thùng hàng",
+          "severity": "CRITICAL",
+          "polygon": [
+            [
+              577,
+              382
+            ],
+            [
+              787,
+              372
+            ],
+            [
+              981,
+              712
+            ],
+            [
+              524,
+              716
+            ]
+          ]
+        }
+      ]
+    },
+    {
       "camera_id": "CAM-03",
       "name": "Khu Vực Dock Bốc Dỡ & Làn Xe Nâng",
       "location": "Nhà Kho Thông Minh - Khu Vực Cửa Số 3",

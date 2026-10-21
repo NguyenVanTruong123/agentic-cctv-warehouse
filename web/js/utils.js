@@ -64,10 +64,57 @@ function formatMarkdown(text) {
   // 6. Chuyển `code` thành khối mã nổi bật
   safe = safe.replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:3px;font-family:monospace;color:#fde047;">$1</code>');
 
-  // 7. Gạch đầu dòng: - item hoặc * item thành flex list item gọn gàng
+  // 7. Chuyển Markdown Table (| ... |) thành HTML Table chuẩn đẹp
+  safe = safe.replace(/((?:^\|.+?\|\s*(?:\r?\n|$))+)/gm, (match) => {
+    const rawLines = match.trim().split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (rawLines.length < 2) return match;
+    const sepIndex = rawLines.findIndex(l => /^\|[\s\-:|]+\|$/.test(l));
+    if (sepIndex === -1) return match;
+
+    const headerLines = rawLines.slice(0, sepIndex);
+    const bodyLines = rawLines.slice(sepIndex + 1);
+
+    const parseRow = (line) => {
+      const trimmed = line.replace(/^\||\|$/g, '');
+      return trimmed.split('|').map(c => c.trim());
+    };
+
+    let html = '<div class="chat-table-wrapper" style="overflow-x:auto;margin:8px 0;border-radius:6px;border:1px solid rgba(255,255,255,0.12);box-shadow:0 2px 8px rgba(0,0,0,0.25);"><table class="chat-table" style="width:100%;border-collapse:collapse;font-size:12.5px;background:rgba(15,23,42,0.65);">';
+
+    if (headerLines.length > 0) {
+      html += '<thead>';
+      headerLines.forEach(hl => {
+        html += '<tr style="background:rgba(30,41,59,0.95);border-bottom:1px solid rgba(255,255,255,0.15);">';
+        parseRow(hl).forEach(cell => {
+          html += `<th style="padding:7px 10px;color:#93c5fd;font-weight:600;text-align:left;white-space:nowrap;">${cell}</th>`;
+        });
+        html += '</tr>';
+      });
+      html += '</thead>';
+    }
+
+    if (bodyLines.length > 0) {
+      html += '<tbody>';
+      bodyLines.forEach((bl, idx) => {
+        const bg = idx % 2 === 0 ? 'background:rgba(255,255,255,0.02);' : 'background:transparent;';
+        html += `<tr style="${bg}border-bottom:1px solid rgba(255,255,255,0.06);">`;
+        parseRow(bl).forEach((cell, cIdx) => {
+          const colStyle = cIdx === 0 ? 'font-weight:600;color:#f8fafc;width:28%;white-space:nowrap;' : 'color:#cbd5e1;';
+          html += `<td style="padding:6px 10px;vertical-align:top;${colStyle}">${cell}</td>`;
+        });
+        html += '</tr>';
+      });
+      html += '</tbody>';
+    }
+
+    html += '</table></div>';
+    return html;
+  });
+
+  // 8. Gạch đầu dòng: - item hoặc * item thành flex list item gọn gàng
   safe = safe.replace(/^[\s]*[-•*]\s+(.+)$/gm, '<div class="chat-li"><span class="chat-bullet">•</span><span>$1</span></div>');
 
-  // 8. Chuyển \n còn lại thành <br>, nhưng không để thừa khoảng cách sau div
+  // 9. Dọn dẹp khoảng cách thừa quanh thẻ block (div, table, wrapper)
   safe = safe.replace(/<\/div>\n/g, '</div>');
   safe = safe.replace(/\n<\/div>/g, '</div>');
   safe = safe.replace(/\n\n/g, '<div style="height:6px;"></div>');

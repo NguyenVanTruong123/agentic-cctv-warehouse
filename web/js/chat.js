@@ -165,7 +165,7 @@ function buildResultCard(e, code) {
   const bSeek = makeEl('button', 'btn btn-sm btn-primary', '▶ TUA VIDEO ĐẾN VI PHẠM');
   bSeek.type = 'button';
   bSeek.addEventListener('click', () => {
-    seekTo(code || state.selectedCam, e.time);
+    seekTo(code || state.selectedCam, e.time, e.videoUrl);
   });
   actionRow.appendChild(bSeek);
 

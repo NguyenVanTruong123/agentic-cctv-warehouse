@@ -108,6 +108,12 @@ def get_cameras():
                 video_url = "/storage/cctv_videos/vat_can_xe_nang_preview.mp4"
             else:
                 video_url = "/data/videos/VatCanChanLoiDiXeNang.mp4"
+        elif cam_id == "CAM-02":
+            preview_file = STORAGE_DIR / "cctv_videos" / "hanh_lang_thoat_hiem_preview_1.mp4"
+            if preview_file.exists():
+                video_url = "/storage/cctv_videos/hanh_lang_thoat_hiem_preview_1.mp4"
+            else:
+                video_url = "/data/videos/vat_can_chan_duong_di_thoat_hiem_1.mp4"
         elif c.get("video_path"):
             v_path = c["video_path"].replace("\\", "/").lstrip("/")
             video_url = f"/{v_path}"
@@ -209,29 +215,86 @@ def handle_chat(req: ChatRequest):
         # 2. Luu lai lich su hoi thoai vao State cua session (giu 20 tin gan nhat)
         CHAT_SESSIONS[session_id] = list(updated_messages)[-20:]
 
-        # Tim kiem xem co su kien vi pham nao duoc de cap trong cau tra loi khong
+        # ======================================================================
+        # TRIPLE-LOCK EVENT GROUNDING (CHỐNG HIỂN THỊ NHẦM TRIỆT ĐỂ)
+        # ======================================================================
+        import re
+        import json
+
+        target_event_ids = []
+
+        # 1. KHÓA 1 (User Intent): Người dùng chỉ đích danh mã EVT trong câu hỏi
+        user_targets = re.findall(r"EVT-\d{8}-\d{3}", user_msg, re.IGNORECASE)
+        if user_targets:
+            target_event_ids = [t.upper() for t in user_targets]
+        else:
+            # 2. KHÓA 2 (Tool Output): Lấy các event_id thực sự được Tool trả về trong lượt gọi này
+            tool_event_ids = []
+            for msg in reversed(updated_messages):
+                if hasattr(msg, "name") and msg.name == "query_safety_events":
+                    try:
+                        content_data = json.loads(msg.content)
+                        if isinstance(content_data, list):
+                            for item in content_data:
+                                if isinstance(item, dict) and "event_id" in item:
+                                    tool_event_ids.append(item["event_id"])
+                    except Exception:
+                        pass
+                if msg.__class__.__name__ == "HumanMessage":
+                    break
+
+            if tool_event_ids:
+                # Chỉ giữ lại mã từ Tool mà thực sự được đề cập trong câu trả lời
+                target_event_ids = [eid for eid in tool_event_ids if eid in reply_text]
+                if not target_event_ids:
+                    target_event_ids = tool_event_ids
+            else:
+                # 3. KHÓA 3 (Regex Text): Tìm mã EVT xuất hiện trong văn bản trả lời
+                reply_evts = re.findall(r"EVT-\d{8}-\d{3}", reply_text)
+                if reply_evts:
+                    seen = set()
+                    target_event_ids = [x for x in reply_evts if not (x in seen or seen.add(x))]
+
         matched_events = []
         seek_sec = None
         evidence_img = None
 
-        all_events = db_manager.query_events()
-        for ev in all_events:
-            ev_id = ev["event_id"]
-            if ev_id in reply_text or (ev.get("violation_type") and ev["violation_type"] in reply_text):
-                seek_sec = float(ev.get("start_second", 6.0))
-                if ev.get("evidence_image"):
-                    evidence_img = "/" + ev["evidence_image"].replace("\\", "/")
-                
-                matched_events.append({
-                    "id": ev["event_id"],
-                    "source": f"{ev['camera_id']} ({ev['violation_type']})",
-                    "time": seek_sec,
-                    "type": ev.get("violation_name", ev["violation_type"]),
-                    "level": ev.get("severity", "Cao"),
-                    "status": "Đã xử lý" if ev.get("status") in ["RESOLVED", "PROCESSED", "DONE"] else "Chưa xử lý",
-                    "evidenceUrl": evidence_img,
-                    "description": ev.get("description", "")
-                })
+        # Lấy thông tin chính xác từ Database cho các sự kiện đã được khóa mục tiêu
+        for ev_id in target_event_ids:
+            ev = db_manager.get_event_by_id(ev_id)
+            if not ev:
+                continue
+
+            cur_seek = float(ev.get("start_second", 6.0))
+            cur_img = "/" + ev["evidence_image"].replace("\\", "/") if ev.get("evidence_image") else ""
+
+            if seek_sec is None:
+                seek_sec = cur_seek
+            if evidence_img is None and cur_img:
+                evidence_img = cur_img
+
+            # Xác định đúng tệp video tương ứng của sự kiện đó
+            ev_video_url = ""
+            if ev_id == "EVT-20261021-001":
+                ev_video_url = "/storage/cctv_videos/hanh_lang_thoat_hiem_preview_2.mp4"
+            elif ev_id == "EVT-20261020-003":
+                ev_video_url = "/storage/cctv_videos/hanh_lang_thoat_hiem_preview_1.mp4"
+            elif ev.get("camera_id") == "CAM-01":
+                ev_video_url = "/storage/cctv_videos/vat_can_xe_nang_preview.mp4"
+            elif ev.get("camera_id") == "CAM-03":
+                ev_video_url = "/storage/cctv_videos/dock_boc_do_preview.mp4"
+
+            matched_events.append({
+                "id": ev["event_id"],
+                "source": f"{ev['camera_id']} ({ev['violation_type']})",
+                "time": cur_seek,
+                "type": ev.get("violation_name", ev["violation_type"]),
+                "level": ev.get("severity", "Cao"),
+                "status": "Đã xử lý" if ev.get("status") in ["RESOLVED", "PROCESSED", "DONE"] else "Chưa xử lý",
+                "evidenceUrl": cur_img,
+                "videoUrl": ev_video_url,
+                "description": ev.get("description", "")
+            })
 
         # Neu trong cau tra loi co chua chuoi 'storage/evidence/'
         if not evidence_img and "storage/evidence/" in reply_text:

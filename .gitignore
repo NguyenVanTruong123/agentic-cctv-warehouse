@@ -26,6 +26,7 @@ data/videos/*.mkv
 storage/evidence/*.jpg
 storage/evidence/*.png
 storage/cctv_videos/*.mp4
+storage/temp/
 
 # Environment
 .env

@@ -23,6 +23,14 @@
       "description": "Đặt kiện hàng, pallet gỗ, thùng carton hoặc dụng cụ chắn ngang làn di chuyển của xe nâng gây cản trở và nguy cơ va chạm lật đổ hàng quá 5 phút.",
       "penalty": "Phát loa cảnh báo yêu cầu bộ phận liên quan di dời vật cản ngay lập tức trong vòng 5 phút, lập biên bản nếu tái diễn.",
       "color_code": "#EAB308"
+    },
+    {
+      "violation_type": "EMERGENCY_EXIT_OBSTRUCTION",
+      "name": "Vật cản chắn lối thoát hiểm PCCC",
+      "severity": "CRITICAL",
+      "description": "Để thùng hàng, pallet, phế liệu hoặc chướng ngại vật chiếm dụng lối đi hành lang thoát hiểm và cửa thoát nạn PCCC.",
+      "penalty": "Lập biên bản vi phạm an toàn PCCC, đình chỉ hoạt động khu vực liên quan và xử lý kỷ luật nghiêm khắc.",
+      "color_code": "#DC2626"
     }
   ]
 }

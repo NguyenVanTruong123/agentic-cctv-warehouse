@@ -16,5 +16,41 @@
     "duration_seconds": 2,
     "description": "Phat hien nguoi di bo xam nhap Làn Xe Nâng Nguy Hiểm trong 2 giay (tu 14:05:06 den 14:05:07)",
     "status": "UNRESOLVED"
+  },
+  {
+    "event_id": "EVT-20261020-003",
+    "camera_id": "CAM-02",
+    "location": "Nhà Kho Thông Minh - Tuyến Hành Lang Thoát Hiểm Tầng 1",
+    "zone_id": "ZONE_EMERGENCY_EXIT",
+    "violation_type": "EMERGENCY_EXIT_OBSTRUCTION",
+    "violation_name": "Vật cản chắn lối thoát hiểm PCCC",
+    "date": "2026-10-20",
+    "start_second": 26,
+    "end_second": 62,
+    "start_timestamp": "10:30:26",
+    "end_timestamp": "10:31:02",
+    "severity": "CRITICAL",
+    "evidence_image": "storage/evidence/EVT-20261020-003.jpg",
+    "duration_seconds": 37,
+    "description": "Phát hiện vật cản (kiện hàng/thùng carton) chiếm dụng hành lang thoát hiểm PCCC trong 37 giây (từ 10:30:26 đến 10:31:02)",
+    "status": "UNRESOLVED"
+  },
+  {
+    "event_id": "EVT-20261021-001",
+    "camera_id": "CAM-02",
+    "location": "Nhà Kho Thông Minh - Tuyến Hành Lang Thoát Hiểm Tầng 1",
+    "zone_id": "ZONE_EMERGENCY_EXIT",
+    "violation_type": "EMERGENCY_EXIT_OBSTRUCTION",
+    "violation_name": "Vật cản chắn lối thoát hiểm PCCC",
+    "date": "2026-10-21",
+    "start_second": 18,
+    "end_second": 87,
+    "start_timestamp": "14:15:18",
+    "end_timestamp": "14:16:27",
+    "severity": "CRITICAL",
+    "evidence_image": "storage/evidence/EVT-20261021-001.jpg",
+    "duration_seconds": 70,
+    "description": "Phát hiện vật cản (kiện hàng/thùng carton) chiếm dụng hành lang thoát hiểm PCCC trong 70 giây (từ 14:15:18 đến 14:16:27)",
+    "status": "UNRESOLVED"
   }
 ]
