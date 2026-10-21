@@ -66,6 +66,7 @@ class ChatResponse(BaseModel):
     reply: str
     active_camera: Optional[str] = "CAM-03"
     seek_second: Optional[float] = None
+    video_url: Optional[str] = None
     evidence_image: Optional[str] = None
     events: Optional[List[Dict[str, Any]]] = None
 
@@ -139,6 +140,17 @@ def get_events(camera_id: Optional[str] = None, date: Optional[str] = None):
         if ev.get("evidence_image"):
             evidence_url = "/" + ev["evidence_image"].replace("\\", "/")
 
+        ev_id = ev.get("event_id", "")
+        ev_video_url = ""
+        if ev_id == "EVT-20261021-001":
+            ev_video_url = "/storage/cctv_videos/hanh_lang_thoat_hiem_preview_2.mp4"
+        elif ev_id == "EVT-20261020-003":
+            ev_video_url = "/storage/cctv_videos/hanh_lang_thoat_hiem_preview_1.mp4"
+        elif ev.get("camera_id") == "CAM-01":
+            ev_video_url = "/storage/cctv_videos/vat_can_xe_nang_preview.mp4"
+        elif ev.get("camera_id") == "CAM-03":
+            ev_video_url = "/storage/cctv_videos/dock_boc_do_preview.mp4"
+
         formatted.append({
             "id": ev["event_id"],
             "camera_id": ev["camera_id"],
@@ -151,6 +163,7 @@ def get_events(camera_id: Optional[str] = None, date: Optional[str] = None):
             "status": ev.get("status", "UNRESOLVED"),
             "seek_second": ev.get("start_second", 0),
             "evidenceUrl": evidence_url,
+            "videoUrl": ev_video_url,
             "description": ev.get("description", "")
         })
 class UpdateEventStatusRequest(BaseModel):
@@ -310,11 +323,18 @@ def handle_chat(req: ChatRequest):
             if sec_match:
                 seek_sec = float(sec_match.group(1))
 
+        ev_video_target = None
+        target_cam_id = req.active_camera
+        if matched_events:
+            ev_video_target = matched_events[0].get("videoUrl")
+            target_cam_id = matched_events[0].get("source", "").split()[0] or req.active_camera
+
         return ChatResponse(
             status="success",
             reply=reply_text,
-            active_camera=req.active_camera,
+            active_camera=target_cam_id,
             seek_second=seek_sec,
+            video_url=ev_video_target,
             evidence_image=evidence_img,
             events=matched_events if matched_events else None
         )

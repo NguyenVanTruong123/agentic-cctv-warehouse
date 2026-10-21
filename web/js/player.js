@@ -62,47 +62,79 @@ function drawBox(b) {
 }
 function clearBoxes() { el.bbox.innerHTML = ''; }
 
-/* Nhảy tới thời điểm trong video đang phát */
+/* Nhảy tới thời điểm trong video đang phát & tự động chuyển camera/phiên video */
 function seekTo(code, seconds, videoUrl) {
   if (typeof seconds !== 'number' || seconds < 0) {
     toast('Thời điểm không hợp lệ.', 'error');
     return;
   }
 
-  // Nếu sự kiện có videoUrl riêng (ví dụ video hôm nay vs hôm qua)
-  if (videoUrl && el.video.src && !el.video.src.includes(videoUrl)) {
-    el.video.src = videoUrl;
-    el.video.load();
-    const jump = () => {
+  // 1. Tự động đồng bộ Camera nếu code được chỉ định khác camera đang chọn
+  const targetCamId = code || state.selectedCam;
+  const cam = state.cameras.find((c) => c.id === targetCamId);
+
+  if (cam) {
+    if (state.selectedCam !== cam.id || state.activeVideo) {
+      state.selectedCam = cam.id;
+      state.activeVideo = null;
+      if (typeof renderCameras === 'function') renderCameras();
+    }
+
+    // Nếu có phiên video cụ thể được yêu cầu (hôm nay vs hôm qua)
+    if (videoUrl) {
+      cam.videoUrl = videoUrl;
+    }
+
+    const finalUrl = cam.videoUrl;
+    if (finalUrl) {
+      el.video.hidden = false;
+      el.placeholder.hidden = true;
+      el.srcBadge.textContent = 'TRÍCH XUẤT VI PHẠM';
+      el.srcBadge.className = 'badge badge-video';
+      el.camName.textContent = `${cam.name} · Tua vi phạm`;
+      el.osdCode.textContent = cam.id;
+      el.osdState.textContent = `VI PHẠM (${seconds}s)`;
+      el.btnPlay.disabled = false;
+
+      const performJump = () => {
+        el.video.currentTime = Math.min(seconds, el.video.duration || seconds);
+        el.video.play().catch(() => {});
+        updatePlayLabel();
+        toast(`Đã tự động chuyển ${cam.id} & tua tới giây thứ ${seconds} (vi phạm)`, 'success');
+      };
+
+      if (!el.video.src || !el.video.src.includes(finalUrl)) {
+        el.video.src = finalUrl;
+        el.video.muted = true;
+        el.video.loop = true;
+        el.video.load();
+        if (el.video.readyState >= 1) {
+          performJump();
+        } else {
+          el.video.addEventListener('loadedmetadata', performJump, { once: true });
+        }
+      } else {
+        performJump();
+      }
+      return;
+    }
+  }
+
+  // 2. Nếu là video nạp từ modal (thư viện tải lên)
+  const vid = state.videos.find((v) => v.code === code);
+  if (vid && state.urls[code]) {
+    state.activeVideo = code;
+    renderStage();
+    if (typeof renderLibrary === 'function') renderLibrary();
+    const go = () => {
       el.video.currentTime = Math.min(seconds, el.video.duration || seconds);
       el.video.play().catch(() => {});
-      toast(`Đã chuyển video và tua tới giây thứ ${seconds}`, 'success');
+      updatePlayLabel();
+      toast(`Đã tua video ${vid.name} tới giây thứ ${seconds}`, 'success');
     };
-    el.video.readyState >= 1 ? jump() : el.video.addEventListener('loadedmetadata', jump, { once: true });
+    el.video.readyState >= 1 ? go() : el.video.addEventListener('loadedmetadata', go, { once: true });
     return;
   }
 
-  // 1. Nếu đang có camera trực tiếp được chọn
-  const cam = state.cameras.find((c) => c.id === state.selectedCam);
-  if (cam && cam.videoUrl && el.video.src) {
-    el.video.currentTime = Math.min(seconds, el.video.duration || seconds);
-    el.video.play().catch(() => {});
-    toast(`Đã tua camera ${cam.id} tới giây thứ ${seconds} (thời điểm vi phạm)`, 'success');
-    return;
-  }
-
-  // 2. Nếu là video nạp từ modal
-  const vid = state.videos.find((v) => v.code === code);
-  if (!vid || !state.urls[code]) {
-    toast('Không tìm thấy tệp video.', 'warn');
-    return;
-  }
-  state.activeVideo = code;
-  renderStage();
-  if (typeof renderLibrary === 'function') renderLibrary();
-  const go = () => {
-    el.video.currentTime = Math.min(seconds, el.video.duration || seconds);
-    el.video.play().catch(() => {});
-  };
-  el.video.readyState >= 1 ? go() : el.video.addEventListener('loadedmetadata', go, { once: true });
+  toast('Không tìm thấy nguồn video phù hợp.', 'warn');
 }

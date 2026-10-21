@@ -165,7 +165,12 @@ function buildResultCard(e, code) {
   const bSeek = makeEl('button', 'btn btn-sm btn-primary', '▶ TUA VIDEO ĐẾN VI PHẠM');
   bSeek.type = 'button';
   bSeek.addEventListener('click', () => {
-    seekTo(code || state.selectedCam, e.time, e.videoUrl);
+    let camCode = code || state.selectedCam;
+    if (e.source) {
+      const m = e.source.match(/CAM-\d+/i);
+      if (m) camCode = m[0].toUpperCase();
+    }
+    seekTo(camCode, e.time, e.videoUrl);
   });
   actionRow.appendChild(bSeek);
 
@@ -242,17 +247,33 @@ async function sendMessage() {
     const data = await res.json();
     setBotStatus('AI đang trả lời...', 'busy');
 
+    // Tự động xác định camera mục tiêu từ response hoặc events
+    let targetCam = data.active_camera;
+    if (!targetCam && data.events && data.events.length > 0 && data.events[0].source) {
+      const m = data.events[0].source.match(/CAM-\d+/i);
+      if (m) targetCam = m[0].toUpperCase();
+    }
+    if (!targetCam) targetCam = state.selectedCam;
+
+    const targetVid = (data.events && data.events[0]?.videoUrl) || data.video_url;
+    let targetSec = null;
+    if (typeof data.seek_second === 'number' && data.seek_second >= 0) {
+      targetSec = data.seek_second;
+    } else if (data.events && data.events.length > 0 && typeof data.events[0].time === 'number') {
+      targetSec = data.events[0].time;
+    }
+
     // Hiển thị tin nhắn trả lời từ LangGraph Agent với hiệu ứng Streaming
     addMessage('bot', data.reply, {
       sim: false,
       events: data.events,
-      code: state.selectedCam,
+      code: targetCam,
       stream: true,
       onDone: () => {
         setBotStatus('Hoàn thành', 'done');
-        // Nếu Agent yêu cầu tua video đến giây vi phạm
-        if (typeof data.seek_second === 'number' && data.seek_second >= 0) {
-          seekTo(state.selectedCam, data.seek_second);
+        // TỰ ĐỘNG HÓA VỚI CCTV WEB PLAYER:
+        if (targetSec !== null && targetCam) {
+          seekTo(targetCam, targetSec, targetVid);
         }
       }
     });
